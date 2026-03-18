@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Controle · Empréstimo</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0c; --s1:#111114; --s2:#18181d; --s3:#202027;
+  --bd:#27272f; --bd2:#35353f;
+  --t1:#eeeef5; --t2:#8a8a9e; --t3:#45455a;
+  --grn:#3ddc84; --grn-a:rgba(61,220,132,.12);
+  --red:#ff6b6b; --red-a:rgba(255,107,107,.12);
+  --amb:#ffb547; --amb-a:rgba(255,181,71,.10);
+  --acc:#8b7cf8; --acc-a:rgba(139,124,248,.15);
+  --blu:#5ba4f5;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);min-height:100vh;font-size:14px;line-height:1.5;overflow-x:hidden}
+
+/* LOGIN */
+#loginOverlay{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.lbox{width:100%;max-width:340px;background:var(--s1);border:1px solid var(--bd2);border-radius:20px;padding:36px 28px 32px;box-shadow:0 0 0 1px rgba(139,124,248,.08),0 40px 80px rgba(0,0,0,.6)}
+.lmark{width:40px;height:40px;background:var(--acc-a);border:1px solid rgba(139,124,248,.4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:20px}
+.lbox h1{font-size:18px;font-weight:600;margin-bottom:4px}
+.lbox p{color:var(--t3);font-size:13px;margin-bottom:24px}
+.lfield{margin-bottom:14px}
+.lfield label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:7px}
+.lfield input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:11px 14px;color:var(--t1);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s}
+.lfield input:focus{border-color:var(--acc)}
+.lerr{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:9px 13px;color:var(--red);font-size:12px;margin-bottom:14px;display:none}
+.lbtn{width:100%;background:var(--acc);color:#fff;border:none;border-radius:9px;padding:13px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.01em}
+.lbtn:hover{opacity:.85}
+.lbtn:active{transform:scale(.98)}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+
+/* TOPBAR */
+.nav{position:sticky;top:0;z-index:100;background:rgba(10,10,12,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:9px}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.nav-title{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--t2)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.sync-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;align-items:center;gap:5px}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-out{background:none;border:1px solid var(--bd2);color:var(--t3);border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer;font-family:var(--sans);transition:.2s}
+.btn-out:hover{border-color:var(--red);color:var(--red)}
+
+/* CARDS */
+.cards{padding:18px 16px 6px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:15px 14px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--bd2),transparent)}
+.card.wide{grid-column:1/-1}
+.card.rc::before{background:linear-gradient(90deg,transparent,rgba(255,107,107,.35),transparent)}
+.card.gc::before{background:linear-gradient(90deg,transparent,rgba(61,220,132,.35),transparent)}
+.card.ac::before{background:linear-gradient(90deg,transparent,rgba(255,181,71,.35),transparent)}
+.clabel{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.cval{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1.1}
+.cval.r{color:var(--red)} .cval.g{color:var(--grn)} .cval.a{color:var(--amb)}
+.csub{font-size:10px;color:var(--t3);margin-top:5px;font-family:var(--mono)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:999px;border:1px solid;position:absolute;top:12px;right:12px}
+.pill.open{color:var(--amb);border-color:rgba(255,181,71,.3);background:var(--amb-a)}
+.pill.done{color:var(--grn);border-color:rgba(61,220,132,.3);background:var(--grn-a)}
+.pill-dot{width:4px;height:4px;border-radius:50%;background:currentColor}
+.prog-wrap{margin-top:12px}
+.prog-bg{background:var(--s3);border-radius:999px;height:5px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--grn));border-radius:999px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.prog-meta{display:flex;justify-content:space-between;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+
+/* ACTIONS */
+.actions{padding:14px 16px 10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.abtn{border:1px solid;border-radius:12px;padding:13px 10px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:7px;letter-spacing:.01em}
+.abtn:active{transform:scale(.97);opacity:.8}
+.abtn.emp{background:var(--red-a);color:var(--red);border-color:rgba(255,107,107,.25)}
+.abtn.pag{background:var(--grn-a);color:var(--grn);border-color:rgba(61,220,132,.25)}
+
+/* LIST */
+.list-wrap{padding:4px 16px 100px}
+.list-head{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px}
+.list-title{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3)}
+.refresh-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;font-family:var(--mono);padding:4px 8px;border-radius:6px;transition:.2s}
+.refresh-btn:hover{color:var(--t2);background:var(--s2)}
+.entry{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:13px 13px 13px 11px;margin-bottom:7px;display:grid;grid-template-columns:3px 1fr auto;gap:0 11px;align-items:start;transition:border-color .2s}
+.entry:hover{border-color:var(--bd2)}
+.entry-bar{width:3px;border-radius:2px;align-self:stretch;min-height:36px}
+.entry-bar.r{background:var(--red);box-shadow:0 0 6px rgba(255,107,107,.4)}
+.entry-bar.g{background:var(--grn);box-shadow:0 0 6px rgba(61,220,132,.4)}
+.entry-label{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.entry-meta{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:4px;background:var(--s3);color:var(--t3)}
+.entry-ev{font-size:10px;color:var(--blu);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.entry-amt{font-family:var(--mono);font-size:14px;font-weight:500;text-align:right;white-space:nowrap}
+.entry-amt.r{color:var(--red)} .entry-amt.g{color:var(--grn)}
+.empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.empty-ico{font-size:32px;margin-bottom:10px;opacity:.3}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.on{opacity:1;pointer-events:all}
+.modal{background:var(--s1);border:1px solid var(--bd2);border-bottom:none;border-radius:20px 20px 0 0;padding:8px 18px 40px;width:100%;max-width:480px;transform:translateY(102%);transition:transform .32s cubic-bezier(.34,1.1,.64,1);box-shadow:0 -20px 60px rgba(0,0,0,.5)}
+.overlay.on .modal{transform:translateY(0)}
+.modal-handle{width:32px;height:3px;background:var(--bd2);border-radius:2px;margin:10px auto 20px}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.mfield{margin-bottom:13px}
+.mfield label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+.mfield input,.mfield textarea{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:11px 13px;color:var(--t1);font-family:var(--sans);font-size:14px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.mfield input:focus,.mfield textarea:focus{border-color:var(--acc)}
+.mfield textarea{resize:none;height:68px}
+.mfield.mono input{font-family:var(--mono)}
+.mbtns{display:flex;gap:10px;margin-top:16px}
+.mcancel{flex:1;background:none;border:1px solid var(--bd2);color:var(--t2);border-radius:8px;padding:12px;font-family:var(--sans);font-size:14px;cursor:pointer;transition:.2s}
+.mcancel:hover{color:var(--t1)}
+.msave{flex:2;border:none;border-radius:8px;padding:12px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.msave:disabled{opacity:.5;cursor:not-allowed}
+.msave.r{background:var(--red);color:#0a0a0c}
+.msave.g{background:var(--grn);color:#0a0a0c}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--s3);border:1px solid var(--bd2);border-radius:10px;padding:11px 18px;font-size:13px;color:var(--t1);white-space:nowrap;z-index:999;transition:transform .3s cubic-bezier(.34,1.3,.64,1),opacity .3s;opacity:0;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.ok{border-color:rgba(61,220,132,.4)}
+.toast.err{border-color:rgba(255,107,107,.4);color:var(--red)}
+
+#lbar{position:fixed;top:0;left:0;right:0;height:2px;z-index:999;background:var(--acc);transform:scaleX(0);transform-origin:left;transition:transform .4s,opacity .4s}
+#lbar.on{transform:scaleX(.7)}
+#lbar.done{transform:scaleX(1);opacity:0}
+
+/* WRITE INSTRUCTIONS MODAL */
+.write-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:16px;padding:24px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.write-modal h3{font-size:15px;font-weight:600;margin-bottom:8px}
+.write-modal p{color:var(--t2);font-size:13px;margin-bottom:12px;line-height:1.6}
+.write-row{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-family:var(--mono);font-size:12px;color:var(--t1)}
+.write-row strong{color:var(--t3);font-weight:400}
+.write-btns{display:flex;gap:8px;margin-top:14px}
+.write-btns button{flex:1;padding:10px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:none}
+.write-open{background:var(--acc);color:#fff}
+.write-close{background:var(--s3);color:var(--t2);border:1px solid var(--bd2) !important}
+
+@media(min-width:520px){.cards{grid-template-columns:repeat(3,1fr)}.card.wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+
+<div id="lbar"></div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="lbox">
+    <div class="lmark">🔐</div>
+    <h1>Acesso Restrito</h1>
+    <p>Controle de empréstimo — Simon</p>
+    <div class="lerr" id="lerr">Usuário ou senha incorretos.</div>
+    <div class="lfield">
+      <label>Usuário</label>
+      <input type="text" id="luser" placeholder="usuário" autocomplete="username" autocorrect="off" autocapitalize="none">
+    </div>
+    <div class="lfield">
+      <label>Senha</label>
+      <input type="password" id="lpass" placeholder="••••••" autocomplete="current-password">
+    </div>
+    <button class="lbtn" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="nav-dot"></span>
+      <span class="nav-title">Empréstimo</span>
+    </div>
+    <div class="nav-right">
+      <span class="sync-lbl" id="syncLbl"></span>
+      <button class="btn-out" onclick="doLogout()">Sair</button>
+    </div>
+  </nav>
+
+  <div class="cards">
+    <div class="card rc">
+      <div class="clabel">Total Emprestado</div>
+      <div class="cval r" id="cEmp">—</div>
+      <div class="csub" id="cEmpSub">carregando...</div>
+    </div>
+    <div class="card gc">
+      <div class="clabel">Total Pago</div>
+      <div class="cval g" id="cPag">—</div>
+      <div class="csub" id="cPagSub">carregando...</div>
+    </div>
+    <div class="card ac wide" style="position:relative">
+      <div class="clabel">Saldo em Aberto</div>
+      <div id="statusPill"></div>
+      <div class="cval a" id="cSaldo">—</div>
+      <div class="prog-wrap">
+        <div class="prog-bg">
+          <div class="prog-fill" id="progFill" style="width:0%"></div>
+        </div>
+        <div class="prog-meta">
+          <span id="progPct">0%</span>
+          <span id="progLbl">do total quitado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="abtn emp" onclick="openModal('emprestimo')">↑ Empréstimo</button>
+    <button class="abtn pag" onclick="openModal('pagamento')">↓ Pagamento</button>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <span class="list-title">Histórico</span>
+      <button class="refresh-btn" onclick="loadData()">↻ atualizar</button>
+    </div>
+    <div id="list"><div class="empty"><div class="empty-ico">⏳</div>Carregando...</div></div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mTitle">Novo lançamento</div>
+    <div class="mfield mono">
+      <label>Valor (R$) *</label>
+      <input type="number" id="fVal" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal">
+    </div>
+    <div class="mfield">
+      <label>Data *</label>
+      <input type="date" id="fDate">
+    </div>
+    <div class="mfield">
+      <label>Evidência (link, comprovante, referência)</label>
+      <input type="text" id="fEv" placeholder="opcional">
+    </div>
+    <div class="mfield">
+      <label>Observação</label>
+      <textarea id="fObs" placeholder="Detalhes adicionais..."></textarea>
+    </div>
+    <div class="mbtns">
+      <button class="mcancel" onclick="closeModal()">Cancelar</button>
+      <button class="msave r" id="msave" onclick="submitEntry()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- WRITE FALLBACK OVERLAY -->
+<div class="overlay" id="writeOverlay" style="align-items:center;padding:24px">
+  <div class="write-modal" id="writeModal">
+    <h3>📋 Salvar manualmente</h3>
+    <p>Não foi possível salvar automaticamente. Copie as informações abaixo e cole na planilha:</p>
+    <div id="writeRows"></div>
+    <div class="write-btns">
+      <button class="write-close" onclick="closeWriteModal()">Fechar</button>
+      <button class="write-open" onclick="openSheet()">Abrir Planilha</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SHEET_ID='1tLuSRd0U-PJ8uQh1fZVe51mNOZV1yc3WUUyrlNH5tSk';
+const GID='1041491294';
+const CSV_URL=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+const CORS='https://corsproxy.io/?';
+
+// ─── Cole aqui a URL do seu Apps Script Web App ───────────────
+// Após publicar o script, substitua o valor abaixo pelo link gerado
+// Exemplo: 'https://script.google.com/macros/s/XXXXXXXXXX/exec'
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby9cQHTDMFu7K3alflAvtf9ScGhN1CHUWykBt-VUZxRhhvv_uRk4JjB2CiWcTnS-2Kd/exec';
+
+let entries=[], curTipo='emprestimo', pendingRow=null;
+
+// LOGIN
+document.getElementById('luser').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+function doLogin(){
+  const u=document.getElementById('luser').value.trim().toLowerCase();
+  const p=document.getElementById('lpass').value;
+  if(u==='simao'&&p==='irmaos'){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    loadData();
+  } else {
+    document.getElementById('lerr').style.display='block';
+    document.getElementById('lpass').value='';
+    document.getElementById('lpass').focus();
+  }
+}
+function doLogout(){location.reload()}
+
+// UTILS
+function lbar(on){
+  const b=document.getElementById('lbar');
+  b.className=on?'on':'done';
+  if(!on) setTimeout(()=>b.className='',500);
+}
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='ok'?'✓ ':'✕ ')+msg;
+  t.className=`toast show ${type}`;
+  setTimeout(()=>t.className='toast',3200);
+}
+function sync(msg,spin=false){
+  document.getElementById('syncLbl').innerHTML=
+    spin?`<span class="spin">↻</span> ${msg}`:msg;
+}
+
+// CSV PARSER
+function csvRow(line){
+  const cols=[]; let cur='', inQ=false;
+  for(const c of line){
+    if(c==='"'){inQ=!inQ}
+    else if(c===','&&!inQ){cols.push(cur);cur=''}
+    else cur+=c;
+  }
+  cols.push(cur); return cols;
+}
+function parseCSV(txt){
+  const lines=txt.trim().split('\n');
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const c=csvRow(lines[i]);
+    const rawVal=(c[0]||'').replace(/[R$\s]/g,'').replace(',','.').trim();
+    const val=parseFloat(rawVal)||0;
+    if(!val) continue;
+    const data=(c[1]||'').trim();
+    const ev=(c[2]||'').trim();
+    const obs=(c[3]||'').trim();
+    const tipo=obs.toLowerCase().includes('[p]')?'pagamento':'emprestimo';
+    rows.push({tipo,val:Math.abs(val),data,ev,obs:obs.replace(/^\[(p|e)\]\s*/i,''),row:i+1});
+  }
+  return rows;
+}
+
+// LOAD — tenta GAS primeiro, fallback para CSV via proxy
+async function loadData(){
+  sync('atualizando...',true); lbar(true);
+
+  // Tenta ler via Apps Script (sem problemas de CORS)
+  if(GAS_URL){
+    try {
+      const res=await fetch(`${GAS_URL}?action=read`,{cache:'no-store'});
+      if(res.ok){
+        const json=await res.json();
+        if(json.rows){
+          entries=parseGASRows(json.rows);
+          render(); sync(''); lbar(false);
+          return;
+        }
+      }
+    } catch(e){ console.warn('GAS read failed, trying CSV fallback:',e); }
+  }
+
+  // Fallback: CSV export via CORS proxy
+  try {
+    const res=await fetch(CORS+encodeURIComponent(CSV_URL),{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    entries=parseCSV(await res.text());
+    render(); sync('');
+  } catch(e){
+    console.error(e); sync('erro ↯');
+    document.getElementById('list').innerHTML=`
+      <div class="empty">
+        <div class="empty-ico">⚠️</div>
+        Não foi possível carregar os dados.<br>
+        <small style="color:var(--t3);display:block;margin-top:4px">Verifique a conexão</small><br>
+        <button onclick="loadData()" style="background:var(--acc);border:none;color:#fff;padding:9px 20px;border-radius:8px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600">↻ Tentar novamente</button>
+      </div>`;
+  }
+  lbar(false);
+}
+
+// Converte linhas retornadas pelo Apps Script
+function parseGASRows(rows){
+  return rows.map(r=>{
+    const obs=String(r.obs||'');
+    const tipo=obs.toLowerCase().includes('[p]')?'pagamento':'emprestimo';
+    const val=parseFloat(String(r.valor).replace(',','.'))||0;
+    return {
+      tipo, val:Math.abs(val),
+      data:String(r.data||''),
+      ev:String(r.evidencia||''),
+      obs:obs.replace(/^\[(p|e)\]\s*/i,''),
+      row:r.row
+    };
+  }).filter(r=>r.val>0);
+}
+
+// FORMAT
+const BRL=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+function fmtDate(d){
+  if(!d) return '—';
+  if(d.includes('/')){const[a,b,c]=d.split('/');return `${a}/${b}/${c}`}
+  if(d.includes('-')){const[y,m,dd]=d.split('-');return `${dd}/${m}/${y}`}
+  return d;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// RENDER
+function render(){
+  const emp=entries.filter(e=>e.tipo==='emprestimo');
+  const pag=entries.filter(e=>e.tipo==='pagamento');
+  const totE=emp.reduce((s,e)=>s+e.val,0);
+  const totP=pag.reduce((s,e)=>s+e.val,0);
+  const saldo=Math.max(0,totE-totP);
+  const pct=totE>0?Math.min(100,(totP/totE)*100):0;
+
+  document.getElementById('cEmp').textContent=BRL(totE);
+  document.getElementById('cEmpSub').textContent=`${emp.length} lançamento${emp.length!==1?'s':''}`;
+  document.getElementById('cPag').textContent=BRL(totP);
+  document.getElementById('cPagSub').textContent=`${pag.length} pagamento${pag.length!==1?'s':''}`;
+  document.getElementById('cSaldo').textContent=BRL(saldo);
+  document.getElementById('progFill').style.width=pct.toFixed(1)+'%';
+  document.getElementById('progPct').textContent=pct.toFixed(0)+'%';
+  document.getElementById('progLbl').textContent=saldo===0&&totE>0?'✓ quitado!':'do total quitado';
+  document.getElementById('statusPill').innerHTML=saldo===0&&totE>0
+    ?'<span class="pill done"><span class="pill-dot"></span>QUITADO</span>'
+    :'<span class="pill open"><span class="pill-dot"></span>EM ABERTO</span>';
+
+  const list=document.getElementById('list');
+  const sorted=[...entries].reverse();
+  if(!sorted.length){
+    list.innerHTML='<div class="empty"><div class="empty-ico">📋</div>Nenhum lançamento registrado.</div>';
+    return;
+  }
+  list.innerHTML=sorted.map(e=>`
+    <div class="entry">
+      <div class="entry-bar ${e.tipo==='emprestimo'?'r':'g'}"></div>
+      <div>
+        <div class="entry-label">${esc(e.obs||(e.tipo==='emprestimo'?'Empréstimo':'Pagamento'))}</div>
+        <div class="entry-meta">
+          ${fmtDate(e.data)}
+          <span class="tag">${e.tipo==='emprestimo'?'empréstimo':'pagamento'}</span>
+        </div>
+        ${e.ev?`<div class="entry-ev">🔗 ${esc(e.ev)}</div>`:''}
+      </div>
+      <div class="entry-amt ${e.tipo==='emprestimo'?'r':'g'}">
+        ${e.tipo==='emprestimo'?'+':'-'}${BRL(e.val)}
+      </div>
+    </div>`).join('');
+}
+
+// MODAL
+function openModal(tipo){
+  curTipo=tipo;
+  const isE=tipo==='emprestimo';
+  document.getElementById('mTitle').innerHTML=isE
+    ?'<span style="color:var(--red)">↑</span> Registrar Empréstimo'
+    :'<span style="color:var(--grn)">↓</span> Registrar Pagamento';
+  const s=document.getElementById('msave');
+  s.className='msave '+(isE?'r':'g');
+  s.textContent=isE?'Salvar Empréstimo':'Salvar Pagamento';
+  document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fVal').value='';
+  document.getElementById('fEv').value='';
+  document.getElementById('fObs').value='';
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(()=>document.getElementById('fVal').focus(),350);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('on')}
+
+// SUBMIT
+async function submitEntry(){
+  const val=parseFloat(document.getElementById('fVal').value);
+  const date=document.getElementById('fDate').value;
+  const ev=document.getElementById('fEv').value.trim();
+  const obs=document.getElementById('fObs').value.trim();
+  if(!val||val<=0){toast('Informe um valor válido','err');return}
+  if(!date){toast('Informe a data','err');return}
+  const prefix=curTipo==='pagamento'?'[P] ':'[E] ';
+  const obsF=prefix+(obs||(curTipo==='emprestimo'?'Empréstimo':'Pagamento'));
+  const[y,m,d]=date.split('-');
+  const dateF=`${d}/${m}/${y}`;
+  const row=[val.toFixed(2),dateF,ev,obsF];
+  const btn=document.getElementById('msave');
+  btn.disabled=true; btn.textContent='Salvando...';
+  const ok=await writeRow(row);
+  btn.disabled=false;
+  btn.textContent=curTipo==='emprestimo'?'Salvar Empréstimo':'Salvar Pagamento';
+  if(ok){closeModal();toast('Lançamento salvo!');await loadData()}
+}
+
+// WRITE — usa GET com params na URL (contorna CORS do Apps Script)
+async function writeRow(row){
+  const[val,date,ev,obs]=row;
+
+  if(GAS_URL){
+    try {
+      // Apps Script só aceita CORS limpo via GET com parâmetros na URL
+      const params=new URLSearchParams({
+        action:'write',
+        valor:val,
+        data:date,
+        evidencia:ev||'',
+        obs:obs
+      });
+      const url=`${GAS_URL}?${params.toString()}`;
+      // mode no-cors: não lemos a resposta mas o GAS executa normalmente
+      await fetch(url,{method:'GET',mode:'no-cors'});
+      // Aguarda 1.5s e recarrega — sem resposta no no-cors, confiamos na execução
+      await new Promise(r=>setTimeout(r,1500));
+      return true;
+    } catch(e){console.warn('GAS fetch failed:',e)}
+  }
+
+  // Fallback: modal manual
+  showWriteModal(row);
+  return false;
+}
+
+function showWriteModal(row){
+  const[val,date,ev,obs]=row;
+  pendingRow=row;
+  const fields=[
+    ['Valor',`R$ ${val}`],
+    ['Data',date],
+    ...(ev?[['Evidência',ev]]:[]),
+    ['Observação',obs]
+  ];
+  document.getElementById('writeRows').innerHTML=fields.map(([k,v])=>
+    `<div class="write-row"><strong>${k}:</strong> ${esc(v)}</div>`
+  ).join('');
+  document.getElementById('writeOverlay').classList.add('on');
+}
+function closeWriteModal(){document.getElementById('writeOverlay').classList.remove('on')}
+function openSheet(){window.open(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${GID}`,'_blank')}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal();closeWriteModal()}
+});
+</script>
+</body>
+</html>
